@@ -1,1 +1,4 @@
-//hello meng
+var app = {
+  init: function() {},
+  send: function() {}
+};
