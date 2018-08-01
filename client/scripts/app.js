@@ -2,8 +2,8 @@
 $(document).ready( () => app.init() );
 
 var message = {
-  username: 'rmrmrm',
-  text: 'trololo',
+  username: 'Meng and Ryan',
+  text: 'anything',
   roomname: '4chan'
 };
 
@@ -21,9 +21,20 @@ var app = {
     });
     $('#roomSelect').on('change', function() {
       app.clearMessages();
-      console.log(selected);
       selected = $( '#roomSelect option:selected' ).text();
       app.fetch(selected);
+    });
+    $('#submission').on('submit', function() {
+      var myMesaage = $('#message').val();
+    
+    });
+    $('#sendMssg').on('click', function() {
+      var input = $('#inputMsg').val();
+      
+      message.text = input;
+      console.log(message);
+      app.send(message);
+      app.fetch();
     });
     $(document).on('click', '.username', function(event) { app.handleUsernameClick(event); });
   },
@@ -86,8 +97,7 @@ var app = {
         });
         _.uniq(roomnames).forEach(function(rmName) {
           if (rmName && rmName !== selection) {
-            $('#roomSelect').append('<option></option>');
-            $('option').last().text(rmName);
+            app.renderRoom(rmName);
           }
         });
       },
@@ -112,7 +122,8 @@ var app = {
     friends.push($(event.target).text());
     console.log('helloss');
     return friends;
-  }
+  },
+  handleSubmit: function() {}
 };
 
 
