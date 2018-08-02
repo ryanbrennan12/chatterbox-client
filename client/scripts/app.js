@@ -1,28 +1,13 @@
 $(document).ready( () => {
   app.init();
-  $('#send').submit(function( event ) {
-    event.preventDefault();
-    console.log('hellso');
-    app.clearMessages();
-    var message = $('#message').val();
-    app.handleSubmit(message);
-  });
+  $('#send').submit(event => app.handleSubmit(event));
 });
+var selectedRoom, roomnames, isFirstTimeLoad;
 var app = {
   init: function() {
-    var selected = $( '#roomSelect option:selected' ).text();
-    app.fetch(selected);
-    $( '#sendBtn' ).on('click', function() {
-      app.send(message);
-    });
-    $( '#fetchBtn' ).on('click', function() {
-      app.fetch(selected);
-    });
-    $('#roomSelect').on('change', function() {
-      selected = $( '#roomSelect option:selected' ).text();
-      app.fetch(selected);
-    });
-    $(document).on('click', '.username', function(event) { app.handleUsernameClick(event); });
+    app.fetch();
+    $('#roomSelect').on('change', () => app.fetch()); //why do I need do I need to write an arrow fcn for this? - but not for forEach
+    $(document).on('click', '.username', event => app.handleUsernameClick(event));
   },
   send: function(message) {
     $.ajax({
@@ -30,28 +15,37 @@ var app = {
       type: 'POST',
       data: JSON.stringify(message),
       contentType: 'application/json',
-      success: function (data) { console.log('success'); },
-      error: function (data) {
+      success: data => { console.log('success'); },
+      error: data => {
         console.error('chatterbox: Failed to send message', data);
       }
     });
   },
-  fetch: function(selection) {
+  detectSelectedRoom: () => $( '#roomSelect option:selected' ).text(),
+  fetch: function() {
     $.ajax({
       url: app.server,
       type: 'GET',
       data: { order: '-createdAt'},
       contentType: 'application/json',
       success: function (data) {
-        data.results.forEach(app.renderMessage);
-        $('option').not(`option:contains(${selection})`).remove(); //remove all rooms except for currently selected
-        var roomnames = _.uniq(data.results.map(message => message.roomname));
-        for (var room of roomnames) {
-          if (room !== selection) {
-            app.renderRoom(room, selection);
-          }
+
+        if (roomnames) {
+          selectedRoom = app.detectSelectedRoom();
         }
+
+        roomnames = _.uniq(data.results.map((message) => { if (message.roomname) { return message.roomname; } })); // all unique roomnames in an array except for undefined
+
+        $('option').remove(); // delete all room options under #roomSelect so we can render from scratch in the drop down menu
+
+        roomnames.forEach((room) => { app.renderRoom(room); }); // render each room in the drop down menu
+
+        $('option').filter(function() { return $(this).text() === selectedRoom; }).attr('selected', 'selected'); //???why won't an arrow function work here?
+        selectedRoom = app.detectSelectedRoom();
+        app.clearMessages(); // Clear messages
+        data.results.forEach((message) => { if (message.roomname === selectedRoom) { app.renderMessage(message); } }); // Send each message to renderMessage()
       },
+
       error: function (data) {
         console.error('chatterbox: Failed to fetch message', data);
       }
@@ -61,17 +55,12 @@ var app = {
   clearMessages: function() { $( '#chats' ).empty(); },
   renderMessage: function(message) {
     date = new Date (message.updatedAt);
-    date = (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes();
-    $('<div/>').appendTo('#chats');
-    $('div').last().text(`${date} `);
-    $('div').last().append('<span class = \'username\'></span><span class = \'text\'></span>');
-    $('.username').last().text(`${message.username}`);
-    $('.text').last().text(` ${message.text}`);
+    date = date.getHours() + ':' + date.getMinutes();
+    $('<div/>').text(`${date} `).appendTo('#chats'); // add message date
+    $('<span class = \'username\'></span>').text(`${message.username}`).appendTo('#chats div:last') // add message username
+      .after($('<span class = \'text\'></span>').text(` ${message.text}`)); // add message text
   },
-  renderRoom: function(newRoom, selection) {
-    // if(!newRoom){
-    //   console.log('false');
-    // }
+  renderRoom: function(newRoom) {
     $('#roomSelect').last().append('<option/>');
     $('option').last().text(newRoom);
   },
@@ -80,15 +69,18 @@ var app = {
     friends.push($(event.target).text());
     console.log('friend added');
   },
-  handleSubmit: function(newMessage) {
-    var message = {
+  handleSubmit: function(event) {
+    app.clearMessages();
+    selectedRoom = app.detectSelectedRoom();
+    let message = {
       username: 'rmrmrm',
-      text: 'trolley',
-      roomname: '4chan'
+      text: $('#message').val(),
+      roomname: selectedRoom
     };
-    message.text = newMessage;
     app.send(message);
     app.fetch();
+    $('#send').trigger('reset');
+    event.preventDefault();
   }
 };
 
